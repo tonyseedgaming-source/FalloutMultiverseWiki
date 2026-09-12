@@ -32,6 +32,26 @@ const ITEM_SHEET_NAMES = [
 const ITEM_CATEGORY_ALIASES = {
   Ammunitions: "Ammunition"
 };
+const BROWSER_DATASETS = {
+  items: {
+    name: "Items",
+    sheets: ITEM_SHEET_NAMES,
+    categoriesUrl: CATEGORIES_CSV_URL,
+    category: "Items"
+  },
+  vehicles: {
+    name: "Vehicles",
+    sheets: ["Vehicles"],
+    categoriesUrl: `${SPREADSHEET_BASE}&sheet=Vehicle%20Categories`,
+    category: "Vehicles"
+  },
+  animals: {
+    name: "Animals",
+    sheets: ["Animals"],
+    categoriesUrl: `${SPREADSHEET_BASE}&sheet=Animals%20Categories`,
+    category: "Animals"
+  }
+};
 
 const modList = document.querySelector("[data-mod-list]");
 const modlistStatus = document.querySelector("[data-modlist-status]");
@@ -55,6 +75,15 @@ let allItems = [];
 function normalizeCategoryName(categoryName) {
   const trimmedName = (categoryName || "").trim();
   return ITEM_CATEGORY_ALIASES[trimmedName] || trimmedName;
+}
+
+function getDataset() {
+  const type = new URLSearchParams(window.location.search).get("type");
+  if (type && BROWSER_DATASETS[type]) return BROWSER_DATASETS[type];
+  if (document.body.dataset.browserKind && BROWSER_DATASETS[document.body.dataset.browserKind]) {
+    return BROWSER_DATASETS[document.body.dataset.browserKind];
+  }
+  return BROWSER_DATASETS.items;
 }
 
 
@@ -272,8 +301,30 @@ function buildSubcategoryToCategoryMap(categoriesRows) {
       map[cell] = categoryName;
       categories[categoryName].push(cell);
     }
+
   }
 
+  return { map, categories };
+}
+
+function buildSingleCategoryMap(categoriesRows, categoryName, headerName) {
+  const map = {};
+  const categories = { [categoryName]: [] };
+  const headerIndex = categoriesRows.findIndex(row =>
+    row.some(cell => (cell || "").trim().toLowerCase() === headerName.toLowerCase())
+  );
+  if (headerIndex < 0) return { map, categories };
+
+  const headerRow = categoriesRows[headerIndex];
+  const column = headerRow.findIndex(cell =>
+    (cell || "").trim().toLowerCase() === headerName.toLowerCase()
+  );
+  for (let rowIndex = headerIndex + 1; rowIndex < categoriesRows.length; rowIndex++) {
+    const subcategory = (categoriesRows[rowIndex][column] || "").trim();
+    if (!subcategory) continue;
+    map[subcategory] = categoryName;
+    categories[categoryName].push(subcategory);
+  }
   return { map, categories };
 }
 
@@ -370,7 +421,8 @@ function groupItemsByCategory(items, subcatToCat, categoryLayout) {
 }
 
 async function fetchAllCategoryItems() {
-  const categorySheetUrls = ITEM_SHEET_NAMES.map(sheetName =>
+  const dataset = getDataset();
+  const categorySheetUrls = dataset.sheets.map(sheetName =>
     `${SPREADSHEET_BASE}&sheet=${encodeURIComponent(sheetName)}`
   );
   const responses = await Promise.all(
@@ -386,7 +438,7 @@ async function fetchAllCategoryItems() {
     .flatMap((csvText, index) =>
       getItemsFromCsv(csvText).map(item => ({
         ...item,
-        category: ITEM_SHEET_NAMES[index]
+        category: dataset.sheets[index]
       }))
     )
     .filter((item, index, allItems) =>
@@ -462,7 +514,7 @@ function renderCategoriesGrid(groups, includeItems = false) {
         ? "subcategory-box"
         : "subcategory-box subcategory-link";
       if (!includeItems) {
-        subBox.href = `subcategory.html?category=${encodeURIComponent(catName)}&subcategory=${encodeURIComponent(subName)}`;
+        subBox.href = `subcategory.html?type=${encodeURIComponent(getDatasetKey())}&category=${encodeURIComponent(catName)}&subcategory=${encodeURIComponent(subName)}`;
       }
 
       const subHeader = document.createElement("div");
@@ -485,6 +537,7 @@ function renderCategoriesGrid(groups, includeItems = false) {
           emptyState.textContent = "No items documented yet";
           list.append(emptyState);
         }
+
         subBox.append(list);
       }
       subGrid.append(subBox);
@@ -495,6 +548,12 @@ function renderCategoriesGrid(groups, includeItems = false) {
   }
 
   if (itemCategoriesSection) itemCategoriesSection.hidden = false;
+}
+
+function getDatasetKey() {
+  const paramsType = new URLSearchParams(window.location.search).get("type");
+  if (paramsType && BROWSER_DATASETS[paramsType]) return paramsType;
+  return document.body.dataset.browserKind || "items";
 }
 
 function renderCategoryPage(groups) {
@@ -607,8 +666,9 @@ async function loadItemsAndCategories() {
       }
     }
     // Fetch categories grid first (map subcategory -> category)
+    const dataset = getDataset();
     const [catResp, items] = await Promise.all([
-      fetch(CATEGORIES_CSV_URL, { cache: "no-store" }),
+      fetch(dataset.categoriesUrl, { cache: "no-store" }),
       fetchAllCategoryItems()
     ]);
 
@@ -617,7 +677,13 @@ async function loadItemsAndCategories() {
     const catCsv = await catResp.text();
 
     const catRows = parseCsv(catCsv);
-    const categoryLayout = buildSubcategoryToCategoryMap(catRows);
+    const categoryLayout = dataset === BROWSER_DATASETS.items
+      ? buildSubcategoryToCategoryMap(catRows)
+      : buildSingleCategoryMap(
+        catRows,
+        dataset.category,
+        dataset === BROWSER_DATASETS.vehicles ? "Vehicle Types" : "Animals Types"
+      );
 
     const groups = groupItemsByCategory(items, categoryLayout.map, categoryLayout.categories);
     allItems = items;
