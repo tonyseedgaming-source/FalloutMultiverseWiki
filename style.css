@@ -759,13 +759,15 @@ a {
 
 .subcategory-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 14px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
   padding-top: 16px;
 }
 
 .subcategory-box {
+  align-self: start;
   min-width: 0;
+  min-height: 72px;
   padding: 14px;
   background: #181818;
   border: 1px solid #3d3d3d;
@@ -779,11 +781,10 @@ a {
 }
 
 .subcategory-title {
-  overflow: hidden;
+  overflow-wrap: anywhere;
   color: #eee;
   font-size: 16px;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
 }
 
 .subcategory-list {
@@ -877,7 +878,7 @@ a {
   }
 
   .subcategory-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
   }
 
   .item-result-row {
