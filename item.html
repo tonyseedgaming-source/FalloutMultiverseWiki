@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Item details | Fallout Multiverse</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body class="item-browser">
+  <header class="navbar">
+    <div class="nav-left">
+      <img src="images/FM_Logo.png" class="nav-logo" alt="Fallout Multiverse Logo">
+      <span class="nav-title">Fallout Multiverse</span>
+    </div>
+    <nav class="nav-links" aria-label="Main navigation">
+      <a href="index.html">Home</a>
+      <a href="docs-options.html" class="active">Documentation</a>
+      <a href="servers.html">Servers</a>
+    </nav>
+  </header>
+
+  <main class="item-browser-page">
+    <div class="item-browser-heading">
+      <a href="items.html">&larr; Back to items</a>
+      <form class="item-detail-search" data-item-search>
+        <label class="visually-hidden" for="item-lookup">Search by item ID or GUID</label>
+        <input id="item-lookup" name="lookup" type="search"
+               placeholder="Search by item ID or GUID" autocomplete="off">
+        <button type="submit" aria-label="Search">Search</button>
+      </form>
+    </div>
+    <p class="item-detail-status" data-item-status role="status">
+      Select an item from the list to view its details.
+    </p>
+    <section data-item-results aria-live="polite"></section>
+  </main>
+  <script src="item-detail.js"></script>
+</body>
+</html>

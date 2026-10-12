@@ -332,13 +332,14 @@ function normalizeItem(row, indices) {
   // indices: mapping header name -> column index
   const icon = getImageUrl(row[indices.icon] || "");
   const id = (row[indices.id] || "").trim();
+  const guid = indices.guid >= 0 ? (row[indices.guid] || "").trim() : "";
   const name = (row[indices.name] || "").trim();
   const description = (row[indices.description] || "").trim();
   const source = (row[indices.source] || "").trim();
   const subcategory = (row[indices.subcategory] || "").trim();
   const lastUpdated = (row[indices.lastUpdated] || "").trim();
 
-  return { icon, id, name, description, source, subcategory, lastUpdated };
+  return { icon, id, guid, name, description, source, subcategory, lastUpdated };
 }
 
 function indexHeaders(headerRow) {
@@ -349,6 +350,7 @@ function indexHeaders(headerRow) {
     icon: -1,
     description: -1,
     source: -1,
+    guid: -1,
     lastUpdated: -1
   };
   for (let i = 0; i < headerRow.length; i++) {
@@ -359,6 +361,7 @@ function indexHeaders(headerRow) {
     else if (h === "icon" || h === "image") indices.icon = i;
     else if (h === "description") indices.description = i;
     else if (h === "source") indices.source = i;
+    else if (h === "guid") indices.guid = i;
     else if (h === "last updated") indices.lastUpdated = i;
   }
 
@@ -391,6 +394,7 @@ function getItemsFromCsv(csvText) {
       name: 2,
       description: 3,
       source: 4,
+      guid: 5,
       subcategory: 6,
       lastUpdated: 7
     });
@@ -473,7 +477,20 @@ function createItemEntry(item) {
   const name = document.createElement("span");
   name.className = "item-name";
   name.textContent = item.name;
-  details.append(name);
+  if (item.guid || item.id) {
+    const detailLink = document.createElement("a");
+    detailLink.className = "item-detail-link";
+    const lookup = new URLSearchParams();
+    if (item.guid) lookup.set("guid", item.guid);
+    else lookup.set("id", item.id);
+    if (item.name) lookup.set("name", item.name);
+    if (item.icon) lookup.set("icon", item.icon);
+    detailLink.href = `item.html?${lookup}`;
+    detailLink.append(name);
+    details.append(detailLink);
+  } else {
+    details.append(name);
+  }
 
   if (item.id) {
     const id = document.createElement("span");
